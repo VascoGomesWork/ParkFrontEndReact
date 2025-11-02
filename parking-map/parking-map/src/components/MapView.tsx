@@ -13,7 +13,7 @@ const containerStyle = {
   height: "600px",
 };
 
-const center = { lat: 37.028959, lng: -7.923182 };
+const center = { lat: 37.028790, lng: -7.923860 };
 const initialCarPosition = { lat: 37.028574, lng: -7.923958 };
 const VITE_GOOGLE_MAPS_API_KEY =
   "AIzaSyDSC4UvHHkir4s0ZENB6iHQboc3ktIevTg";
@@ -49,7 +49,7 @@ const MapView: React.FC = () => {
     const interval = setInterval(() => {
       setCarPosition(routePath[index]);
       setCarIcon({
-        url: "/toyota-supra.png",
+        url: "/car-icon.png",
         scaledSize: new window.google.maps.Size(40, 40),
       });
 
@@ -67,7 +67,7 @@ const MapView: React.FC = () => {
 
   const handleMapLoad = () => {
     setCarIcon({
-      url: "/car-idle.png",
+      url: "/car-icon.png",
       scaledSize: new window.google.maps.Size(40, 40),
     });
   };
@@ -123,6 +123,8 @@ const MapView: React.FC = () => {
       }
     );
   };
+
+  console.log("TESTe = ", parkingSpots)
 
   return (
     <LoadScript googleMapsApiKey={VITE_GOOGLE_MAPS_API_KEY}>
