@@ -131,7 +131,7 @@ const MapView: React.FC = () => {
     const fetchParkingSpots = () => {
       console.log("TESTE")
       axios
-        .get<ParkingSpot[]>("http://localhost:8000/parks/a1")
+        .get<ParkingSpot[]>("http://localhost:8000/parks")
         .then((res) => setParkingSpots(res.data))
         .catch((err) => console.error("Error fetching parking spots:", err));
     };
@@ -140,7 +140,7 @@ const MapView: React.FC = () => {
     fetchParkingSpots();
 
     // Poll every 2 seconds
-    const interval = setInterval(fetchParkingSpots, 2000);
+    const interval = setInterval(fetchParkingSpots, 500);
 
     // Clean up on unmount
     return () => clearInterval(interval);
