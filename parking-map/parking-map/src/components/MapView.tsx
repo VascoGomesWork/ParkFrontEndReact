@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { GoogleMap, LoadScript, Rectangle, Marker, DirectionsRenderer } from "@react-google-maps/api";
+import {
+  GoogleMap,
+  LoadScript,
+  Marker,
+  DirectionsRenderer,
+} from "@react-google-maps/api";
 import axios from "axios";
 import type { ParkingSpot } from "./ParkingSpot ";
 
@@ -8,170 +13,116 @@ const containerStyle = {
   height: "600px",
 };
 
-const center = { lat: 37.028946, lng: -7.923223 };
-
-// Initial car position
+const center = { lat: 37.028959, lng: -7.923182 };
 const initialCarPosition = { lat: 37.028574, lng: -7.923958 };
-
-const VITE_GOOGLE_MAPS_API_KEY = "AIzaSyDSC4UvHHkir4s0ZENB6iHQboc3ktIevTg";
+const VITE_GOOGLE_MAPS_API_KEY =
+  "AIzaSyDSC4UvHHkir4s0ZENB6iHQboc3ktIevTg";
 
 const MapView: React.FC = () => {
   const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
   const [carPosition, setCarPosition] = useState(initialCarPosition);
   const [routePath, setRoutePath] = useState<google.maps.LatLngLiteral[]>([]);
-  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+  const [directions, setDirections] =
+    useState<google.maps.DirectionsResult | null>(null);
   const [carIcon, setCarIcon] = useState<google.maps.Icon | undefined>(undefined);
+  const [targetSpot, setTargetSpot] = useState<ParkingSpot | null>(null);
 
-  // Fetch parking spots
+  // Fetch parking spots every 500ms
   useEffect(() => {
-    axios
-      .get<ParkingSpot[]>("http://localhost:8000/parks")
-      .then((res) => setParkingSpots(res.data))
-      .catch((err) => console.error("Error fetching parking spots:", err));
-  }, []);
-
-  // Move car along the route path
-  useEffect(() => {
-    if (routePath.length === 0) return;
-
-    let index = 0;
-    const interval = setInterval(() => {
-      setCarPosition(routePath[index]);
-
-      //Changes the car icon
-      setCarIcon({
-      url: "/toyota-supra.png", // switch to moving icon
-      scaledSize: new window.google.maps.Size(40, 40),
-      });
-
-      index++;
-      if (index >= routePath.length) {
-      clearInterval(interval);
-      setDirections(null); // <-- remove the route
-      //atualizaEstadoLugar(spot)
-    }
-    }, 1000); // Adjust speed here
-
-    return () => clearInterval(interval);
-  }, [routePath]);
-
-  const handleMapLoad = (map: google.maps.Map) => {
-    setCarIcon({
-      url: "/car-idle.png",
-      scaledSize: new window.google.maps.Size(40, 40),
-    });
-  };
-
-
-  const atualizaEstadoLugar = (spot : ParkingSpot) => {
-
-    axios.post(`http://localhost:8000/parks/atualizaLugar/${spot.id}`)
-      .then(() => {
-        // Update parking spots
-        setParkingSpots(prev =>
-          prev.map(p => (p.id === spot.id ? { ...p, estado: "reservado" } : p))
-        );
-
-        // Animate car to this spot
-        const directionsService = new google.maps.DirectionsService();
-        directionsService.route(
-          {
-            origin: carPosition,
-            destination: { lat: 37.028765, lng: -7.923403 },
-            travelMode: google.maps.TravelMode.DRIVING,
-          },
-          (result, status) => {
-            if (status === "OK" && result) {
-              setDirections(result);
-              const path = result.routes[0].overview_path.map(p => ({ lat: p.lat(), lng: p.lng() }));
-              setRoutePath(path);
-            } else {
-              console.error("Error fetching directions:", status);
-            }
-          }
-        );
-      })
-      .catch(err => console.error("Error reserving spot:", err));
-
-  }
-
-  // Handle rectangle click → reserve & animate car
-  const handleReserveSpot = (spot: ParkingSpot) => {
-
-    if(spot.estado === "ocupado") {
-      alert("Não é possível Reservar este lugar")
-      return;
-    }
-
-    const confirmed = window.confirm(`Pretende Reservar o Lugar: ${spot.id}?`);
-    if (!confirmed) return;
-
-    // Animate car to this spot
-        const directionsService = new google.maps.DirectionsService();
-        directionsService.route(
-          {
-            origin: carPosition,
-            destination: { lat: spot.latitude/*37.028765*/, lng: spot.longitude/*-7.923403*/ },
-            travelMode: google.maps.TravelMode.DRIVING,
-          },
-          (result, status) => {
-            if (status === "OK" && result) {
-              setDirections(result);
-              const path = result.routes[0].overview_path.map(p => ({ lat: p.lat(), lng: p.lng() }));
-              setRoutePath(path);
-            } else {
-              console.error("Error fetching directions:", status);
-            }
-          }
-        );
-  };
-
-  useEffect(() => {
-    // Function to fetch parking spots
     const fetchParkingSpots = () => {
-      console.log("TESTE")
       axios
         .get<ParkingSpot[]>("http://localhost:8000/parks")
         .then((res) => setParkingSpots(res.data))
         .catch((err) => console.error("Error fetching parking spots:", err));
     };
 
-    // Initial fetch
     fetchParkingSpots();
-
-    // Poll every 2 seconds
     const interval = setInterval(fetchParkingSpots, 500);
-
-    // Clean up on unmount
     return () => clearInterval(interval);
   }, []);
 
+  // Move car along the route path
+  useEffect(() => {
+    if (routePath.length === 0 || !targetSpot) return;
 
-  const determinaHandicapELivre = (spot: ParkingSpot) => {
+    let index = 0;
+    const interval = setInterval(() => {
+      setCarPosition(routePath[index]);
+      setCarIcon({
+        url: "/toyota-supra.png",
+        scaledSize: new window.google.maps.Size(40, 40),
+      });
 
-    //spot.estado === "livre" && spot.tipo === true ? "/handicap-green.png" : "/park-red.png"
-    if(spot.estado === "livre" && spot.tipo === true){
+      index++;
+      if (index >= routePath.length) {
+        clearInterval(interval);
+        setDirections(null);
+        atualizaEstadoLugar(targetSpot);
+        setTargetSpot(null);
+      }
+    }, 1000);
 
-      return "/handicap-green.png"
+    return () => clearInterval(interval);
+  }, [routePath, targetSpot]);
+
+  const handleMapLoad = () => {
+    setCarIcon({
+      url: "/car-idle.png",
+      scaledSize: new window.google.maps.Size(40, 40),
+    });
+  };
+
+  const determinaHandicapELivre = (spot: ParkingSpot): string => {
+    if (spot.tipo) {
+      return spot.estado === "livre" ? "/handicap-green.png" : "/handicap-red.png";
+    } else {
+      return spot.estado === "livre" ? "/park-green.png" : "/park-red.png";
+    }
+  };
+
+  const atualizaEstadoLugar = (spot: ParkingSpot) => {
+    axios
+      .post(`http://localhost:8000/parks/atualizaLugar/${spot.id}`)
+      .then(() => {
+        setParkingSpots((prev) =>
+          prev.map((p) => (p.id === spot.id ? { ...p, estado: "reservado" } : p))
+        );
+      })
+      .catch((err) => console.error("Error reserving spot:", err));
+  };
+
+  const handleReserveSpot = (spot: ParkingSpot) => {
+    if (spot.estado === "ocupado") {
+      alert("Não é possível Reservar este lugar");
+      return;
     }
 
-    if(spot.estado !== "livre" && spot.tipo === true){
+    const confirmed = window.confirm(`Pretende Reservar o Lugar: ${spot.id}?`);
+    if (!confirmed) return;
 
-      return "/handicap-red.png"
-    }
+    setTargetSpot(spot); // store target spot
 
-    if(spot.estado === "livre" && spot.tipo === false){
-
-      return "/park-green.png"
-    }
-
-    if(spot.estado !== "livre" && spot.tipo === false){
-
-      return "/park-red.png"
-    }
-    return ""
-  }
-
+    const directionsService = new google.maps.DirectionsService();
+    directionsService.route(
+      {
+        origin: carPosition,
+        destination: { lat: spot.latitude, lng: spot.longitude },
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === "OK" && result) {
+          setDirections(result);
+          const path = result.routes[0].overview_path.map((p) => ({
+            lat: p.lat(),
+            lng: p.lng(),
+          }));
+          setRoutePath(path);
+        } else {
+          console.error("Error fetching directions:", status);
+        }
+      }
+    );
+  };
 
   return (
     <LoadScript googleMapsApiKey={VITE_GOOGLE_MAPS_API_KEY}>
@@ -179,41 +130,30 @@ const MapView: React.FC = () => {
         {/* Car marker */}
         <Marker
           position={carPosition}
-          //icon={carIcon}
           icon={
             typeof window.google !== "undefined"
               ? {
-                  url: "/car-icon.png",
+                  url: carIcon?.url || "/car-icon.png",
                   scaledSize: new window.google.maps.Size(40, 40),
                 }
-              : undefined // fallback until google is loaded
+              : undefined
           }
           title="Toyota Supra"
         />
 
-        {/* Parking spots */}
-        {parkingSpots.map((spot) => {
-          const bounds = {
-            north: spot.latitude + 0.00002,
-            south: spot.latitude - 0.00002,
-            east: spot.longitude + 0.00002,
-            west: spot.longitude - 0.00002,
-          };
-          return (
-            
-            <Marker
-              key={spot.id}
-              position={{ lat: spot.latitude, lng: spot.longitude }}
-              icon={{
-                url: determinaHandicapELivre(spot),
-                scaledSize: new window.google.maps.Size(40, 40),
-              }}
-              onClick={() => handleReserveSpot(spot)}
-              title={`Spot ${spot.id}`}
-            />
-
-          );
-        })}
+        {/* Parking spot markers */}
+        {parkingSpots.map((spot) => (
+          <Marker
+            key={spot.id}
+            position={{ lat: spot.latitude, lng: spot.longitude }}
+            icon={{
+              url: determinaHandicapELivre(spot),
+              scaledSize: new window.google.maps.Size(40, 40),
+            }}
+            onClick={() => handleReserveSpot(spot)}
+            title={`Spot ${spot.id}`}
+          />
+        ))}
 
         {/* Directions renderer */}
         {directions && <DirectionsRenderer directions={directions} />}
