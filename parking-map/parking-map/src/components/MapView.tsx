@@ -4,11 +4,11 @@ import axios from "axios";
 import type { ParkingSpot } from "./ParkingSpot ";
 
 const containerStyle = {
-  width: "100%",
+  width: "300vw",
   height: "600px",
 };
 
-const center = { lat: 37.028959, lng: -7.923182 };
+const center = { lat: 37.028946, lng: -7.923223 };
 
 // Initial car position
 const initialCarPosition = { lat: 37.028574, lng: -7.923958 };
@@ -147,6 +147,32 @@ const MapView: React.FC = () => {
   }, []);
 
 
+  const determinaHandicapELivre = (spot: ParkingSpot) => {
+
+    //spot.estado === "livre" && spot.tipo === true ? "/handicap-green.png" : "/park-red.png"
+    if(spot.estado === "livre" && spot.tipo === true){
+
+      return "/handicap-green.png"
+    }
+
+    if(spot.estado !== "livre" && spot.tipo === true){
+
+      return "/handicap-red.png"
+    }
+
+    if(spot.estado === "livre" && spot.tipo === false){
+
+      return "/park-green.png"
+    }
+
+    if(spot.estado !== "livre" && spot.tipo === false){
+
+      return "/park-red.png"
+    }
+    return ""
+  }
+
+
   return (
     <LoadScript googleMapsApiKey={VITE_GOOGLE_MAPS_API_KEY}>
       <GoogleMap mapContainerStyle={containerStyle} center={center} zoom={19}>
@@ -174,17 +200,18 @@ const MapView: React.FC = () => {
             west: spot.longitude - 0.00002,
           };
           return (
-            <Rectangle
+            
+            <Marker
               key={spot.id}
-              bounds={bounds}
-              options={{
-                fillColor: spot.estado === "livre" ? "green" : "red",
-                fillOpacity: 0.6,
-                strokeColor: "black",
-                strokeWeight: 1,
+              position={{ lat: spot.latitude, lng: spot.longitude }}
+              icon={{
+                url: determinaHandicapELivre(spot),
+                scaledSize: new window.google.maps.Size(40, 40),
               }}
               onClick={() => handleReserveSpot(spot)}
+              title={`Spot ${spot.id}`}
             />
+
           );
         })}
 

@@ -8,7 +8,7 @@ function App() {
 
    return (
       <div className="App">
-        <h1>🅿️ Parking Spot Map</h1>
+        <h1>🅿️ Smart Spot</h1>
         <MapView />
       </div>
     );
