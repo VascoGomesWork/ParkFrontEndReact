@@ -1,0 +1,5 @@
+cd /ParkFrontEndReact/parking-map/parking-map
+
+npm install
+
+npm run dev
